@@ -2,130 +2,41 @@
 #include <stdio.h>
 #include <stdint.h>
 #include "libs/sbox.h"
-
-
-#ifndef Nb
-    #define Nb 4
-#endif
-
-#ifndef Nr
-    #define Nr 10
-#endif
-
-#ifndef Nk
-    #define Nk 4
-#endif
-
-
-int Chipher(uint8_t in[4*Nb], uint8_t out[4*Nb], uint32_t w[Nb*(Nr+1)]);
-uint32_t generateWord(uint8_t array0, uint8_t array1, uint8_t array2, uint8_t array3 );
-int KeyExpantion(uint8_t key[4*Nk], uint32_t w[Nb*(Nr+1)]);
-void getBytes(uint32_t input, uint8_t *array );
-uint32_t subWord(uint32_t input);
-uint32_t rotWord(uint32_t input);
-int KeyExpantion(uint8_t key[4*Nk], uint32_t w[Nb*(Nr+1)]);
-
-uint32_t Rcon[] = { 0x01000000,
-                    0x02000000,
-                    0x04000000,
-                    0x08000000,
-                    0x10000000,
-                    0,20000000,
-                    0x40000000,
-                    0x80000000,
-                    0x1b000000,
-                    0x36000000
-                    };
+#include "libs/aes.h"
+#include "libs/math_aes.h"
 
 int main()
 {
-    uint8_t prova = 212;
-    printf( " %d ", sbox(prova, 0));
+    /*uint8_t prova = 212;
+    printf( " %d ", sbox(prova, 0));*/
+    
+    /*
 
-    uint8_t in[4 * Nb];
+    uint8_t in[4 * Nb] = {0x32, 0x88, 0x31, 0xe0, 0x43, 0x5a, 0x31, 0x37, 0xf6, 0x30, 0x98, 0x07, 0xa8, 0x8d, 0xa2, 0x34};
     uint8_t out[4 * Nb];
-    uint32_t w[Nb*(Nr+1)];
-    uint8_t key[4*Nk] = { 0x2b, 0x7e, 0x15, 0x16, 0x28, 0xae, 0xd2, 0xa6, 0xab, 0xf7, 0x15, 0x88, 0x09, 0xcf, 0x4f, 0x3c};
-    KeyExpantion(key, w);
+    //uint32_t w[Nb*(Nr+1)];
+    //uint8_t key[4*Nk]
+    uint8_t key[] = { 0x2b, 0x7e, 0x15, 0x16, 0x28, 0xae, 0xd2, 0xa6, 0xab, 0xf7, 0x15, 0x88, 0x09, 0xcf, 0x4f, 0x3c};
+    */
+
+    /*uint8_t in[4 * Nb] = {0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff};
+    uint8_t out[4 * Nb];
+    uint8_t key[] = { 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f};
+    */
+
+    uint8_t in[1] = {0x11};
+    uint8_t out[4 * Nb];
+    uint8_t key[] = { 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f};
 
 
-    printf( "\n %08X\n", subWord(0x11001501));
-    printf( "\n %08X\n", Rcon[0]);
-    //Chipher(in, out, w);
+    aes_encrypt(in, 1, out, 4*Nb, key, 128);
+    /*KeyExpantion(key);
+    Chipher(in, out, w);*/
 
-
+    printf("Encrypted: ");
+        for(int i=0; i< 4*Nb; i++)
+            printf(" %02X", *(out + i));
+    printf("\n");
 
     return 0;
 }
-
-int Chipher(uint8_t in[4*Nb], uint8_t out[4*Nb], uint32_t w[Nb*(Nr+1)]){
-
-    uint8_t state[4 * Nb];
-    //copy input in state
-    for(int i=0; i< 4*Nb; i++){
-        *(state + i) = *(in + i); 
-        printf(" %d", *(state + i));
-    }
-
-    
-    
-
-    
-    return 0;
-}
-
-
-int KeyExpantion(uint8_t key[4*Nk], uint32_t w[Nb*(Nr+1)]){
-
-    uint32_t temp;
-    //fill the first 4, 6 or 8 word with the key
-    for (int i = 0; i < Nk; i++)
-        w[i] = generateWord(key[4*i], key[4*i+1], key[4*i+2], key[4*i+3]);
-    
-    //fill the others
-    for (int i = Nk; i < Nb*(Nr+1); i++){
-        temp = w[i-1];
-        if(i % Nk == 0)
-            temp = subWord(rotWord(temp)) ^ Rcon[((int)i/Nk)-1];
-        else if(Nk > 6 && i % Nk == 4)
-            temp = subWord(temp);
-        
-        w[i] = w[i - Nk] ^ temp;
-    }
-    return 0;
-
-}
-
-//Takes an array of bytes and generates a word
-
-//word( array[0], array[1], array[2], array[3])
-uint32_t generateWord(uint8_t array0, uint8_t array1, uint8_t array2, uint8_t array3 ){
-    
-    uint32_t uscita = (((uint32_t) array0) << 24) | (((uint32_t) array1) << 16) | (((uint32_t) array2) << 8) | ((uint32_t) array3);
-    return uscita;
-}
-
-//take an input of 32 bits and separate all bytes
-void getBytes(uint32_t input, uint8_t *array ){
-    
-    array[0] = (uint8_t)((input >> 24) & 0x000000FF);
-    array[1] = (uint8_t)((input >> 16) & 0x000000FF);
-    array[2] = (uint8_t)((input >> 8) & 0x000000FF);
-    array[3] = (uint8_t)(input & 0x000000FF);
-}
-
-//takes an 32 bit input and apply SBOX to each byte
-uint32_t subWord(uint32_t input)
-{
-    uint8_t arr[4];
-    getBytes(input, arr);
-    return generateWord(sbox(arr[0], 1), sbox(arr[1], 1), sbox(arr[2], 1), sbox(arr[3], 1));
-}
-
-uint32_t rotWord(uint32_t input)
-{
-    uint32_t first = (uint8_t)((input >> 24) & 0x000000FF);    
-    return (input << 8) | first;
-}
-
-

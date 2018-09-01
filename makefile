@@ -16,13 +16,18 @@ NAMEFILE = main.c
 PROGRAM_NAME = aes
 
 LIBS =  
+math_aes_lib:
+	$(CC) $(CFLAGS) -c libs/math_aes.c -o build/math_aes_lib.o -std=gnu99
 
-sbox:
-	$(CC) $(CFLAGS) -c libs/sbox.c -o build/sbox.o -std=gnu99
+sbox_lib:
+	$(CC) $(CFLAGS) -c libs/sbox.c -o build/sbox_lib.o -std=gnu99
 
-$(PROGRAM_NAME): sbox
+aes_lib:
+	$(CC) $(CFLAGS) -c libs/aes.c -o build/aes_lib.o -std=gnu99
+
+$(PROGRAM_NAME): math_aes_lib sbox_lib aes_lib
 	@mkdir -p build
-	$(CC) $(CFLAGS) $(NAMEFILE) -o build/$(PROGRAM_NAME) build/sbox.o -std=gnu99
+	$(CC) $(CFLAGS) $(NAMEFILE) -o build/$(PROGRAM_NAME) build/math_aes_lib.o build/sbox_lib.o build/aes_lib.o -std=gnu99
 	@echo " "
 	@echo "Compilazione completata! il file si trova nella cartella build!"
 	@echo " "
