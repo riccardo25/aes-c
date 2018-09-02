@@ -21,6 +21,15 @@
 #ifndef EAS_H
 #define EAS_H
 
+/* MACRO */
+/* for mixColumn*/
+#define mul0E(s) ( xtimes(xtimes(xtimes(s))) ^ xtimes(xtimes(s)) ^ xtimes(s) )
+#define mul0B(s) ( xtimes(xtimes(xtimes(s))) ^ xtimes(s) ^ s )
+#define mul0D(s) ( xtimes(xtimes(xtimes(s))) ^ xtimes(xtimes(s)) ^ s )
+#define mul09(s) ( xtimes(xtimes(xtimes(s))) ^ s )
+#define mul03(s) ( xtimes(s) ^ s )
+
+
 /* GLOBAL VARIABLES */
 
 #ifndef Nb
@@ -37,6 +46,8 @@ extern uint32_t *w;
 extern uint32_t Rcon[];
 
 /*FUNCTIONS*/
+
+void state_transpose(uint8_t *state);
 
 //crypt function interface
 int aes_encrypt(uint8_t *in, unsigned int len_in, uint8_t *out, unsigned int len_out, uint8_t *key, unsigned int key_bits);
@@ -61,6 +72,17 @@ void subBytes(uint8_t *state);
 void shiftRows(uint8_t *state);
 void swaprow(uint8_t *state, unsigned int row);
 void mixColumns(uint8_t *state);
+
+/*Decrypt*/
+
+int aes_decrypt(uint8_t *in, unsigned int len_in, uint8_t *out, unsigned int len_out, uint8_t *key, unsigned int key_bits);
+
+int invChipher(uint8_t in[4*Nb], uint8_t out[4*Nb], uint32_t *w);
+
+void invShiftRows(uint8_t *state);
+void invMixColumns(uint8_t *state);
+void invSubBytes(uint8_t *state);
+
 
 
 

@@ -21,6 +21,22 @@ uint32_t Rcon[] = { 0x01000000,
                     };
 
 /* FUNCTIONS*/
+
+//transpose state
+void state_transpose(uint8_t *state) {
+    
+    uint8_t newstate[Nb*4];
+
+    for (int i = 0; i < Nb; i++)
+        for(int j = 0; j < Nb ; j++)
+            *(newstate + Nb*i + j) = *(state + Nb*j + i);
+        
+
+    for (int i = 0; i < Nb*4; i++)
+        *(state + i) = *(newstate + i);
+}
+
+/*ENCRYPT*/
 //return -1 bed params
 //if len not multiple of 4*Nb, zeros will be added at the end
 //len_in coud what you want, but len_outmust be multiple of Nb*4 and >= len_in
@@ -61,15 +77,13 @@ int aes_encrypt(uint8_t *in, unsigned int len_in, uint8_t *out, unsigned int len
 }
 
 
-
-
 int Chipher(uint8_t in[4*Nb], uint8_t out[4*Nb], uint32_t *w){
 
     uint8_t state[4 * Nb];
     //copy input in state
     for(int i=0; i< 4*Nb; i++)
         *(state + i) = *(in + i); 
-        
+
     AddRoundKey(state, w, 0);
 
     /*printf("After addroundkey");
@@ -84,10 +98,11 @@ int Chipher(uint8_t in[4*Nb], uint8_t out[4*Nb], uint32_t *w){
         shiftRows(state);
         mixColumns(state);
         AddRoundKey(state, w, i*Nb);
-        /*printf("After round %d:", i);
-        for(int i=0; i< 4*Nb; i++)
-            printf(" %02X", *(state + i));
+        
     
+        /*printf("After round %d:", i);
+        for(int c=0; c< 4*Nb; c++)
+            printf(" %02X", *(state + c));
         printf(" \n");*/
     }
 
@@ -217,15 +232,137 @@ void mixColumns(uint8_t *state){
     uint8_t newstate[4 * Nb];
     for(int i=0; i<4; i++){
         //S0i                               02 * S0i                                        03 *S1i                                 S2i                         S3i
-        *(newstate + Nb * 0 + i) = xtimes(*(state + Nb * 0 + i)) ^ xtimes(*(state + Nb * 1 + i)) ^ *(state + Nb * 1 + i)  ^ *(state + Nb * 2 + i) ^ *(state + Nb * 3 + i);
+        *(newstate + Nb * 0 + i) = xtimes(*(state + Nb * 0 + i)) ^ mul03(*(state + Nb * 1 + i))  ^ *(state + Nb * 2 + i) ^ *(state + Nb * 3 + i);
         //S1i                               S0i                    02 * S1i                                             03 *S2i                               S3i
-        *(newstate + Nb * 1 + i) = *(state + Nb * 0 + i) ^ xtimes(*(state + Nb * 1 + i)) ^ xtimes(*(state + Nb * 2 + i)) ^ *(state + Nb * 2 + i)  ^ *(state + Nb * 3 + i);
+        *(newstate + Nb * 1 + i) = *(state + Nb * 0 + i) ^ xtimes(*(state + Nb * 1 + i)) ^ mul03(*(state + Nb * 2 + i))  ^ *(state + Nb * 3 + i);
 
-        *(newstate + Nb * 2 + i) = *(state + Nb * 0 + i) ^ *(state + Nb * 1 + i) ^ xtimes(*(state + Nb * 2 + i)) ^ xtimes(*(state + Nb * 3 + i)) ^ *(state + Nb * 3 + i) ;
+        *(newstate + Nb * 2 + i) = *(state + Nb * 0 + i) ^ *(state + Nb * 1 + i) ^ xtimes(*(state + Nb * 2 + i)) ^ mul03(*(state + Nb * 3 + i)) ;
 
-        *(newstate + Nb * 3 + i) = xtimes(*(state + Nb * 0 + i)) ^ *(state + Nb * 0 + i)  ^ *(state + Nb * 1 + i) ^ *(state + Nb * 2 + i) ^ xtimes(*(state + Nb * 3 + i));
+        *(newstate + Nb * 3 + i) = mul03(*(state + Nb * 0 + i))  ^ *(state + Nb * 1 + i) ^ *(state + Nb * 2 + i) ^ xtimes(*(state + Nb * 3 + i));
     }
 
     for( int i = 0; i< Nb*4; i++)
         *(state + i) = *(newstate + i);
+}
+
+
+
+/*DECRYPT*/
+
+
+//return -1 bed params
+//if len not multiple of 4*Nb, zeros will be added at the end
+//len_in coud what you want, but len_outmust be multiple of Nb*4 and >= len_in
+int aes_decrypt(uint8_t *in, unsigned int len_in, uint8_t *out, unsigned int len_out, uint8_t *key, unsigned int key_bits){
+
+    //control parameters
+    if(len_in == 0 || (key_bits != 128 && key_bits != 192 && key_bits != 256 ) || len_out < len_in || len_out % 4*Nb != 0)
+        return -1;
+
+    //get the number of elements in the tail of input buffer (add 0)
+    unsigned int tail = len_in % (4*Nb);
+    unsigned int N = len_in / (4*Nb);//number of iterations
+    if(tail != 0)//one more iteration
+        N++;
+    //key settings
+    set_key_lenght(key_bits);
+    KeyExpantion(key);
+
+    uint8_t *output;
+    uint8_t newin[ 4 * Nb];
+
+    for (int i = 0; i < N; i++){
+        //transpose and full tail with 0
+        for(int c = 0; c < Nb*4 ; c++){
+            if( i != N-1 || tail == 0 || c < tail)
+                *(newin + Nb * (c % 4) + (int) (c / 4)) = *(in + i * 4 * Nb + c);
+            else 
+                *(newin + Nb * (c % 4) + (int) (c / 4)) = 0;
+        }
+
+        output = out + i * 4 * Nb;
+
+        //encrypt data
+        invChipher(newin, output, w);
+    }
+
+    return 0;
+}
+
+
+int invChipher(uint8_t in[4*Nb], uint8_t out[4*Nb], uint32_t *w){
+
+    uint8_t state[4 * Nb];
+    //copy input in state
+    for(int i=0; i< 4*Nb; i++)
+        *(state + i) = *(in + i); 
+        
+    AddRoundKey(state, w, Nr*Nb);
+
+    /*printf("After addroundkey");
+    for(int i=0; i< 4*Nb; i++)
+        printf(" %02X", *(state + i));
+    
+    printf(" \n");*/
+
+    for(int i = Nr-1; i >= 1; i--)
+    {
+        invShiftRows(state);
+        invSubBytes(state);
+        AddRoundKey(state, w, i*Nb);
+        invMixColumns(state);
+        
+        /*printf("After round %d:", i);
+        for(int i=0; i< 4*Nb; i++)
+            printf(" %02X", *(state + i));
+    
+        printf(" \n");*/
+    }
+
+    invShiftRows(state);
+    invSubBytes(state);
+    AddRoundKey(state, w, 0);
+    
+    for(int i=0; i < Nb; i++)
+        for (int j = 0; j < Nb; j++)
+            *(out + Nb*i + j) = *(state + Nb*j + i);
+
+    return 0;
+}
+
+
+
+void invShiftRows(uint8_t *state){
+    //shift row 1, 3times
+    swaprow(state, 1);
+    swaprow(state, 1);
+    swaprow(state, 1);
+    //shift row 2 2times
+    swaprow(state, 2);
+    swaprow(state, 2);
+    //shift row 3 1times
+    swaprow(state, 3);
+}
+
+void invMixColumns(uint8_t *state){
+
+    uint8_t newstate[4 * Nb];
+    for(int i=0; i<4; i++){
+    
+        *(newstate + Nb * 0 + i) = mul0E(*(state + Nb * 0 + i)) ^ mul0B(*(state + Nb * 1 + i)) ^ mul0D( *(state + Nb * 2 + i)) ^ mul09(*(state + Nb * 3 + i));
+
+        *(newstate + Nb * 1 + i) = mul09(*(state + Nb * 0 + i)) ^ mul0E(*(state + Nb * 1 + i)) ^ mul0B( *(state + Nb * 2 + i)) ^ mul0D(*(state + Nb * 3 + i));
+
+        *(newstate + Nb * 2 + i) = mul0D(*(state + Nb * 0 + i)) ^ mul09(*(state + Nb * 1 + i)) ^ mul0E( *(state + Nb * 2 + i)) ^ mul0B(*(state + Nb * 3 + i));
+
+        *(newstate + Nb * 3 + i) = mul0B(*(state + Nb * 0 + i)) ^ mul0D(*(state + Nb * 1 + i)) ^ mul09( *(state + Nb * 2 + i)) ^ mul0E(*(state + Nb * 3 + i));
+    }
+
+    for( int i = 0; i< Nb*4; i++)
+        *(state + i) = *(newstate + i);
+}
+
+void invSubBytes(uint8_t *state){
+    for (int i=0; i<Nb*4; i++)
+        *(state + i) = sbox(*(state + i), 0);
 }
