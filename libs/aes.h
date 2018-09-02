@@ -49,11 +49,18 @@ extern uint32_t Rcon[];
 
 void state_transpose(uint8_t *state);
 
+unsigned int simple_out_dim(unsigned int dim_in);
+
+
+
+/*CRYPT*/
+
 //crypt function interface
 int aes_encrypt(uint8_t *in, unsigned int len_in, uint8_t *out, unsigned int len_out, uint8_t *key, unsigned int key_bits);
 
 //cipher of aes
 int Chipher(uint8_t in[4*Nb], uint8_t out[4*Nb], uint32_t *w);
+
 //creates keys for aes
 int KeyExpantion(uint8_t *key);
 
@@ -65,6 +72,7 @@ int get_key_lenght();
 
 //takes an 32 bit input and apply SBOX to each byte
 uint32_t subWord(uint32_t input);
+
 uint32_t rotWord(uint32_t input);
 
 void AddRoundKey(uint8_t *state, uint32_t *w, unsigned int first);

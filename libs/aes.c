@@ -36,6 +36,18 @@ void state_transpose(uint8_t *state) {
         *(state + i) = *(newstate + i);
 }
 
+
+
+unsigned int simple_out_dim(unsigned int dim_in)
+{
+    unsigned int uscita = dim_in / (4*Nb);
+    if(dim_in % (4*Nb) != 0 )
+        uscita++;
+    return uscita * 4 * Nb;
+}
+
+
+
 /*ENCRYPT*/
 //return -1 bed params
 //if len not multiple of 4*Nb, zeros will be added at the end
